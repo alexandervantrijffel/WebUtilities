@@ -1,2 +1,3 @@
 # WebUtilities
-ASP.NET common web utilities
+
+Common utilities for ASP.NET web applications
