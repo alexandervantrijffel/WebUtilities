@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
 using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http.ExceptionHandling;
 using Elmah;
@@ -14,7 +16,7 @@ namespace Structura.SharedComponents.WebUtilities.Elmah
     /// </summary>
     public class ElmahWebApi2ExceptionLogger : ExceptionLogger
     {
-        public override void Log(ExceptionLoggerContext context)
+        public override async Task LogAsync(ExceptionLoggerContext context, CancellationToken cancellationToken)
         {
             // Retrieve the current HttpContext instance for this request.
             var httpContext = GetHttpContext(context.Request);
@@ -23,7 +25,7 @@ namespace Structura.SharedComponents.WebUtilities.Elmah
                 return;
 
             // Wrap the exception in an HttpUnhandledException so that ELMAH can capture the original error page.
-            var exceptionToRaise = new HttpUnhandledException(FormatLogMessage(context, httpContext), context.Exception);
+            var exceptionToRaise = new HttpUnhandledException(await FormatLogMessageAsync(context, httpContext), context.Exception);
 
             FormatLoggerAccessor.Instance().Error(exceptionToRaise, string.Empty);
 
@@ -31,7 +33,24 @@ namespace Structura.SharedComponents.WebUtilities.Elmah
             ErrorSignal.FromContext(httpContext).Raise(exceptionToRaise, httpContext);
         }
 
-        private static string FormatLogMessage(ExceptionLoggerContext context, HttpContext httpContext)
+        //public override void Log(ExceptionLoggerContext context)
+        //{
+        //    // Retrieve the current HttpContext instance for this request.
+        //    var httpContext = GetHttpContext(context.Request);
+
+        //    if (httpContext == null)
+        //        return;
+
+        //    // Wrap the exception in an HttpUnhandledException so that ELMAH can capture the original error page.
+        //    var exceptionToRaise = new HttpUnhandledException(FormatLogMessageAsync(context, httpContext), context.Exception);
+
+        //    FormatLoggerAccessor.Instance().Error(exceptionToRaise, string.Empty);
+
+        //    // Send the exception to ELMAH (for logging, mailing, filtering, etc.).
+        //    ErrorSignal.FromContext(httpContext).Raise(exceptionToRaise, httpContext);
+        //}
+
+        private static async Task<string> FormatLogMessageAsync(ExceptionLoggerContext context, HttpContext httpContext)
         {
             // undocumented!
             var webRequest =
@@ -49,17 +68,17 @@ namespace Structura.SharedComponents.WebUtilities.Elmah
                 string.Format(
                     "\r\nRequestUri: {0}\r\nRequest-Content:\r\n{1}\r\nUser host address: {2}\r\nIs local: {3}\r\nMessage: {4}\r\n",
                     context.Request.RequestUri,
-                    ReadContent(context),
+                    await ReadContentAsync(context),
                     webRequest != null ? webRequest.UserHostAddress : string.Empty,
                     context.RequestContext.IsLocal,
                     context.ExceptionContext.Exception.Message);
             return message;
         }
 
-        private static string ReadContent(ExceptionLoggerContext context)
+        private static async Task<string> ReadContentAsync(ExceptionLoggerContext context)
         {
             var content = string.Empty;
-            var stream = context.Request.Content.ReadAsStreamAsync().Result;
+            var stream = await context.Request.Content.ReadAsStreamAsync();
 
             if (stream.CanSeek)
             {
@@ -68,7 +87,7 @@ namespace Structura.SharedComponents.WebUtilities.Elmah
 
             using (var sr = new StreamReader(stream))
             {
-                content = sr.ReadToEnd();
+                content = await sr.ReadToEndAsync();
             }
             return content;
         }
