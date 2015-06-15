@@ -6,11 +6,11 @@ using Structura.SharedComponents.Utilities;
 
 namespace Structura.SharedComponents.WebUtilities.Elmah
 {
-    public class HandleWebApiErrorElmahAttribute : ExceptionFilterAttribute
+    public class HandleWebApi1ErrorElmahAttribute : ExceptionFilterAttribute
     {
         private readonly IFormatLogger _logger;
 
-        public HandleWebApiErrorElmahAttribute(IFormatLogger logger)
+        public HandleWebApi1ErrorElmahAttribute(IFormatLogger logger)
         {
             _logger = logger;
         }
